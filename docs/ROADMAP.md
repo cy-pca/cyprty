@@ -5,13 +5,16 @@
 Until now cyprty was a separate wasm build inside libcvc (`cyprty`, with its own page), deployed
 by hand. It now becomes documents run by the stock `arigl-web` package. What that takes:
 
-- [ ] libcvc: the stock page reads what a conference client needs from its config (`{ws_origin}`,
+- [x] libcvc: the stock page reads what a conference client needs from its config (`{ws_origin}`,
       `url_env`, `fragment_env`, `device_identity`, the audio unlock, `fullscreen_button`), and
       the `arigl-web` recipe builds the single-threaded package with the WebSocket transport, Jolt,
       Opus and device keys.
       [transfix/libcvc#989](https://github.com/transfix/libcvc/pull/989).
-- [ ] cvcpkg.org: a wasm `protobuf` (cy-pca/cvcpkg recipe, merged in #452, never published for
-      wasm), then a libcvc release whose `arigl-web` has the above.
+- [x] cvcpkg.org: a wasm `protobuf` ([cy-pca/cvcpkg#541](https://github.com/cy-pca/cvcpkg/pull/541)),
+      then a libcvc release whose `arigl-web` has the above: libcvc 3.7.9
+      ([transfix/libcvc#1015](https://github.com/transfix/libcvc/pull/1015)). `main.ari` follows
+      the baseline app at 3.7.9 (room chat and direct messages, touch scrolling) and needs it
+      (`min_libcvc: 3.7.9`).
 - [ ] catx-00: the `deploy-cyprty` forced-command action, and `/root/cyprty-deploy.sh` in the
       cyberpcangel instance ([deploy/cyberpcangel/README.md](../deploy/cyberpcangel/README.md)).
 - [ ] The first deploy from this repository, then the `workflow_run` trigger (deploy after `ci`
