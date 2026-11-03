@@ -52,6 +52,7 @@ The page config ([web/ariadne.config.json](web/ariadne.config.json)) sets what a
 | `?look=mouse` / `?look=drag` | start in mouse look or drag to look |
 | `?synthetic=1` | a test pattern instead of your camera |
 | `?lane=1` | offer the relay a WebRTC fast lane for poses and media |
+| `?yield=timeout` | arigl's frame loop on a 0 ms timer instead of requestAnimationFrame (an A/B for pacing) |
 | `#token=...` | a private room's token, in the fragment, which the browser never sends to a server |
 
 The page keeps a random device id and key for the browser in localStorage; the relay shows the
