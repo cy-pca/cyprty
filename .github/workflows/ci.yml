@@ -1,0 +1,93 @@
+name: ci
+
+# Checks what this repository holds: the documents, the page configs and the deploy scripts. It
+# runs on GitHub-hosted runners only: this repository is public, and a pull request's workflows
+# must not reach the self-hosted runners on catx-03.
+#
+# Running the documents themselves (a client joining a relay in the packaged arigl) comes when
+# cvcpkg.org has an arigl that runs a conference: docs/ROADMAP.md.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: The documents parse
+        run: |
+          python3 -m pip install --quiet pyyaml
+          python3 - <<'EOF'
+          import pathlib, sys, yaml
+          docs = sorted(pathlib.Path('share/cyprty').rglob('*.ari'))
+          assert pathlib.Path('share/cyprty/main.ari') in docs, 'no share/cyprty/main.ari'
+          bad = 0
+          for p in docs:
+              try:
+                  d = yaml.safe_load(p.read_text(encoding='utf-8'))
+                  assert isinstance(d, dict), 'not a mapping'
+                  print(f'ok   {p}')
+              except Exception as e:
+                  print(f'FAIL {p}: {e}')
+                  bad += 1
+          sys.exit(1 if bad else 0)
+          EOF
+
+      - name: The page configs parse
+        run: |
+          python3 - <<'EOF'
+          import json, re, sys
+          for p in ('web/ariadne.config.json', 'deploy/cyberpcangel/ariadne.config.json'):
+              c = json.load(open(p, encoding='utf-8'))
+              assert c.get('src') == 'main.ari' and c.get('src_param') is False, p + ': pin main.ari'
+              for key in ('url_env', 'fragment_env'):
+                  for param, rule in (c.get(key) or {}).items():
+                      if isinstance(rule, dict) and 'match' in rule:
+                          re.compile(rule['match'])
+              print('ok  ', p)
+          EOF
+
+      - name: The deploy scripts parse
+        run: |
+          for f in deploy/cyberpcangel/*.sh deploy/relay/*.sh; do bash -n "$f" && echo "ok   $f"; done
+          python3 -m py_compile deploy/cyberpcangel/verify.py && echo "ok   deploy/cyberpcangel/verify.py"
+
+      # cyprty-deploy.sh against a fake instance: a docroot with wp-config.php, an Apache tree, and
+      # no apache2ctl, a2enmod, a2enconf or systemctl that do anything.
+      - name: cyprty-deploy.sh on a fake instance
+        run: |
+          set -euo pipefail
+          T=$(mktemp -d)
+          mkdir -p "$T/www" "$T/apache/sites-enabled" "$T/apache/conf-available" "$T/bin" "$T/tmp"
+          touch "$T/www/wp-config.php"
+          echo "DocumentRoot $T/www" > "$T/apache/sites-enabled/site.conf"
+          for c in apache2ctl a2enmod a2enconf a2disconf systemctl chown; do
+            printf '#!/bin/sh\nexit 0\n' > "$T/bin/$c"; chmod +x "$T/bin/$c"
+          done
+          mkdir -p "$T/payload/cyprty"
+          cp share/cyprty/main.ari deploy/cyberpcangel/ariadne.config.json "$T/payload/cyprty/"
+          echo '<!doctype html>' > "$T/payload/cyprty/index.html"
+          tar czf - -C "$T/payload" cyprty | PATH="$T/bin:$PATH" CYPRTY_APACHE_ETC="$T/apache" \
+            CYPRTY_TMPDIR="$T/tmp" bash deploy/cyberpcangel/cyprty-deploy.sh
+          test -f "$T/www/cyprty/main.ari"
+          grep -q 'ProxyPass        /cyprty-ws' "$T/apache/conf-available/cyprty.conf"
+          # A payload with a file a page doesn't serve is refused.
+          echo x > "$T/payload/cyprty/evil.php"
+          if tar czf - -C "$T/payload" cyprty | PATH="$T/bin:$PATH" CYPRTY_APACHE_ETC="$T/apache" \
+               CYPRTY_TMPDIR="$T/tmp" bash deploy/cyberpcangel/cyprty-deploy.sh; then
+            echo "::error::a .php in the payload was accepted"; exit 1
+          fi
+          echo "ok   cyprty-deploy.sh"

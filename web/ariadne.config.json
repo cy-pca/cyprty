@@ -1,0 +1,21 @@
+{
+  "title": "cyprty",
+  "src": "main.ari",
+  "src_param": false,
+  "env": {
+    "CVC_ARIADNE_RELAY": "{ws_origin}/cyprty-ws",
+    "CVC_ARIADNE_NAME": "guest-{random}"
+  },
+  "url_env": {
+    "name": {"env": "CVC_ARIADNE_NAME", "max": 32},
+    "relay": {"env": "CVC_ARIADNE_RELAY", "match": "^wss?://\\S+$"},
+    "look": {"env": "CVC_ARIGL_LOOK", "match": "^(mouse|drag)$"},
+    "lane": {"env": "CVC_ARIADNE_LANE", "match": "^[^0]", "value": "1"},
+    "synthetic": {"env": "CVC_ARIADNE_SYNTHETIC_CAM", "match": "^[^0]", "value": "1"}
+  },
+  "fragment_env": {
+    "token": "CVC_ARIADNE_ROOM_TOKEN"
+  },
+  "device_identity": true,
+  "fullscreen_button": true
+}

@@ -1,0 +1,9 @@
+# Local install prefixes and staged payloads
+deps/
+.cvcpkg/
+payload/
+*.log
+
+# Python bytecode
+__pycache__/
+*.pyc
