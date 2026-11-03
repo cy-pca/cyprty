@@ -38,7 +38,7 @@ echo "=== configure ==="
 "$CMAKE" -G Ninja -S "$SRC" -B "$B" -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
   -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
   "-DCMAKE_PREFIX_PATH=$DEPS;$DEPS_EXTRA" \
-  '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' \
+  '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
   -DCVC_APP_XML_PROPERTY_TREE=OFF -DCVC_ARIADNE_TVISION=ON -DCVC_BUILD_ARI=ON \
   -DCVC_BUILD_ARIGL=OFF -DCVC_BUILD_ARISRV=ON -DCVC_BUILD_CLI=OFF -DCVC_BUILD_CVCGL=OFF \
   -DCVC_BUILD_LSYS_TOOLS=OFF -DCVC_BUILD_PHYSICS_REPLAY=OFF -DCVC_BUILD_PYCVC=OFF \
@@ -59,12 +59,16 @@ echo "=== build arisrv ==="
 tail -1 "$WORK/build.log"
 
 echo "=== bundle $NAME ==="
+# Straight from the build tree, which already has the install RUNPATH ($ORIGIN/../lib, from
+# CMAKE_BUILD_WITH_INSTALL_RPATH): `cmake --install` would stop at the first target this build
+# skipped (ari) before it reached arisrv.
 O=$WORK/$NAME
-rm -rf "$WORK/install" "$O"
-"$CMAKE" --install "$B" --prefix "$WORK/install" > /dev/null 2>&1 || true
+rm -rf "$O"
 mkdir -p "$O/bin" "$O/lib"
-cp -a "$WORK/install/bin/arisrv" "$O/bin/"
-cp -a "$WORK/install/lib"/libcvc.so* "$O/lib/"
+cp -a "$B/bin/arisrv" "$O/bin/"
+cp -a "$B/lib"/libcvc.so* "$O/lib/"
+readelf -d "$O/bin/arisrv" | grep -q 'RUNPATH.*\$ORIGIN/\.\./lib' ||
+  { echo "FATAL: arisrv's RUNPATH is not \$ORIGIN/../lib"; exit 1; }
 LD_LIBRARY_PATH="$O/lib:$DEPS/lib:$DEPS_EXTRA/lib" ldd "$O/bin/arisrv" |
   awk '/=> \// {print $3}' | grep -F -e "$DEPS" -e "$DEPS_EXTRA" | sort -u |
   while read -r so; do cp -L "$so" "$O/lib/"; done
