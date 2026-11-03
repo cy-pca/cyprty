@@ -9,6 +9,7 @@ by hand. It now becomes documents run by the stock `arigl-web` package. What tha
       `url_env`, `fragment_env`, `device_identity`, the audio unlock, `fullscreen_button`), and
       the `arigl-web` recipe builds the single-threaded package with the WebSocket transport, Jolt,
       Opus and device keys.
+      [transfix/libcvc#989](https://github.com/transfix/libcvc/pull/989).
 - [ ] cvcpkg.org: a wasm `protobuf` (cy-pca/cvcpkg recipe, merged in #452, never published for
       wasm), then a libcvc release whose `arigl-web` has the above.
 - [ ] catx-00: the `deploy-cyprty` forced-command action, and `/root/cyprty-deploy.sh` in the
