@@ -161,7 +161,7 @@ The flags most rooms need (`src/arisrv/main.cpp` in libcvc documents every one):
 For a Linux server with no cvcpkg, `deploy/relay/build-relay.sh` makes the package into a
 self-contained bundle: `bin/arisrv`, the libraries it loads in `lib/`, and `BUILT-FROM`. Copy the
 bundle anywhere and run `bin/arisrv` from it. `WORK` is where the install and the bundle go, and
-`CVCPKG` is the cvcpkg to use (default `~/.local/bin/cvcpkg`):
+`CVCPKG` is the cvcpkg to use (default: the one on `PATH`, else `~/.local/bin/cvcpkg`):
 
 ```bash
 WORK=/tmp/relay bash deploy/relay/build-relay.sh 3.7.10 relay

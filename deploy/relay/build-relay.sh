@@ -18,7 +18,8 @@ set -euo pipefail
 [[ $# -eq 2 ]] || { echo "usage: $0 VERSION NAME" >&2; exit 2; }
 VER=$1 NAME=$2
 WORK=${WORK:-/mnt/ramdisk/tfx/cyprty-relay}
-CVCPKG=${CVCPKG:-$HOME/.local/bin/cvcpkg}
+# `ssh catx-03 'bash -s'` gets no ~/.local/bin on PATH, where catx-03's cvcpkg is.
+CVCPKG=${CVCPKG:-$(command -v cvcpkg || echo "$HOME/.local/bin/cvcpkg")}
 # cvcpkg's download cache too.
 export XDG_CACHE_HOME=$WORK/cache
 mkdir -p "$WORK" "$WORK/cache"
