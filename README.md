@@ -14,7 +14,7 @@ from [libcvc](https://github.com/transfix/libcvc), through its published package
 | the browser host (`index.html`, `arigl.wasm`, ...) | libcvc's `arigl-web` package on cvcpkg.org: the stock page, not a build of libcvc |
 | the native host | libcvc's `arigl` package on cvcpkg.org |
 | the conference itself: rooms, relays, holons, avatar physics, camera and microphone streams | libcvc (cvc::ariadne, cvc::state, cvcGL), in those packages |
-| the relay and the room's holon | libcvc's `arisrv` (deploy/relay builds it until it has a package) |
+| the relay and the room's holon | libcvc's `arisrv` package on cvcpkg.org |
 
 cyprty starts as libcvc's baseline Ariadne conference app. It will grow its own windows and
 branding on top of that baseline ([docs/ROADMAP.md](docs/ROADMAP.md)).
@@ -113,11 +113,17 @@ so a room works across home NATs. It serves the room in two roles:
   - clients send their intents, and the holon sends back the poses everyone sees.
 
 It needs no GPU or display: core libcvc with gRPC, WebSocket and Jolt, and no cvcGL or VTK.
+It is packaged for Linux (x86_64 and arm64), macOS and Windows, from libcvc 3.7.10 on.
+`cvcpkg install arisrv` brings libcvc and everything it needs along:
 
 ```bash
+cvcpkg install arisrv --prefix ./relay --config release --link shared
 CVC_ARISRV_ROOM_DEBUG=1 ./relay/bin/arisrv --room standup \
   --state-listen 0.0.0.0:7700 --media-listen 0.0.0.0:7701 --ws-listen 0.0.0.0:7702
 ```
+
+arisrv runs on the libcvc of its own release. A plain install takes the newest of both. To pin
+an older release, name both: `cvcpkg install arisrv==3.7.10 libcvc==3.7.10 ...`.
 
 Those are also its default ports:
 
@@ -152,17 +158,13 @@ The flags most rooms need (`src/arisrv/main.cpp` in libcvc documents every one):
 | `--video-max RUNG`, `--viewer-kbps-max N` | cap what video each viewer gets |
 | `--set KEY=VALUE` | write a state key once the room is up, before anyone joins (a `conf.*` key reaches every client) |
 
-arisrv has no cvcpkg package yet. `deploy/relay/build-relay.sh` builds it from a libcvc tag into a
-self-contained Linux bundle: `bin/arisrv`, every library it needs in `lib/`, and `BUILT-FROM`. It
-needs four variables:
-
-- `DEPS`: a prefix with libcvc's native dependencies (gRPC, protobuf, Jolt, Boost, ...);
-- `DEPS_EXTRA`: a prefix with libjpeg-turbo;
-- `CMAKE`: the CMake to use;
-- `WORK`: where it builds.
+For a Linux server with no cvcpkg, `deploy/relay/build-relay.sh` makes the package into a
+self-contained bundle: `bin/arisrv`, the libraries it loads in `lib/`, and `BUILT-FROM`. Copy the
+bundle anywhere and run `bin/arisrv` from it. `WORK` is where the install and the bundle go, and
+`CVCPKG` is the cvcpkg to use (default `~/.local/bin/cvcpkg`):
 
 ```bash
-DEPS=... DEPS_EXTRA=... CMAKE=... WORK=... bash deploy/relay/build-relay.sh v3.7.9 relay
+WORK=/tmp/relay bash deploy/relay/build-relay.sh 3.7.10 relay
 ```
 
 [deploy/relay/README.md](deploy/relay/README.md) covers how cyprty's own room is built and run on
