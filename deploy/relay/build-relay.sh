@@ -1,79 +1,54 @@
 #!/usr/bin/env bash
-# build-relay.sh: build the room's relay (libcvc's arisrv) as a self-contained bundle, on catx-03,
-# under its ramdisk (never in a home directory there: it is nearly full).
+# build-relay.sh: make the room's relay (libcvc's arisrv, from its cvcpkg package) into a
+# self-contained bundle, on catx-03, under its ramdisk (never in a home directory there: it is
+# nearly full).
 #
-#   deploy/relay/build-relay.sh LIBCVC_REF NAME
+#   deploy/relay/build-relay.sh VERSION NAME
 #
-# Checks transfix/libcvc out at LIBCVC_REF (a branch, tag or commit), builds arisrv with the
-# conference transports (gRPC and WebSocket), Jolt avatars and libjpeg-turbo video rungs, and
-# writes $WORK/NAME: bin/arisrv, lib/ (libcvc and every library it needs from the deps prefixes,
-# found through RUNPATH $ORIGIN/../lib) and BUILT-FROM. deploy-relay.sh places it on paladin.
+# VERSION is a libcvc release: 3.7.10, or 3.7.10+cvc.1 for one arisrv revision. `cvcpkg install`
+# puts that arisrv and the libcvc of the same release, with libcvc's runtime closure (gRPC,
+# protobuf, Jolt, libjpeg-turbo, ...), into the cvcpkg prefix $WORK/NAME.prefix. libcvc is pinned
+# beside arisrv because the arisrv package leaves it unpinned: an older arisrv with the newest
+# libcvc would not match its ABI.
 #
-# arisrv has no cvcpkg package yet, so the relay is built here; the page is not (it is the stock
-# arigl-web package).
+# The prefix is ~550 MB, most of it headers, static libraries and tools. The bundle, $WORK/NAME,
+# takes only what the relay runs: bin/arisrv, the libraries it loads in lib/ (the package's
+# RUNPATH is $ORIGIN/../lib), and BUILT-FROM. deploy-relay.sh places it on paladin.
 set -euo pipefail
-[[ $# -eq 2 ]] || { echo "usage: $0 LIBCVC_REF NAME" >&2; exit 2; }
-REF=$1 NAME=$2
+[[ $# -eq 2 ]] || { echo "usage: $0 VERSION NAME" >&2; exit 2; }
+VER=$1 NAME=$2
 WORK=${WORK:-/mnt/ramdisk/tfx/cyprty-relay}
-# The native deps (gRPC, protobuf, Jolt, ...; built once on catx-03) and libjpeg-turbo.
-DEPS=${DEPS:-$HOME/h1-native-deps}
-DEPS_EXTRA=${DEPS_EXTRA:-/mnt/ramdisk/tfx/relay-6977af28/deps-extra}
-CMAKE=${CMAKE:-/opt/cvc-wasm/cmake-cvcpkg/bin/cmake}
-test -f "$DEPS_EXTRA/lib/libturbojpeg.so" || { echo "FATAL: no libjpeg-turbo in $DEPS_EXTRA"; exit 1; }
+# `ssh catx-03 'bash -s'` gets no ~/.local/bin on PATH, where catx-03's cvcpkg is.
+CVCPKG=${CVCPKG:-$(command -v cvcpkg || echo "$HOME/.local/bin/cvcpkg")}
+# cvcpkg's download cache too.
 export XDG_CACHE_HOME=$WORK/cache
 mkdir -p "$WORK" "$WORK/cache"
 
-echo "=== source: transfix/libcvc $REF ==="
-SRC=$WORK/src
-if [[ ! -d "$SRC/.git" ]]; then
-  git clone --quiet --filter=blob:none https://github.com/transfix/libcvc.git "$SRC"
-fi
-git -C "$SRC" fetch --quiet origin "$REF"
-git -C "$SRC" checkout --quiet --force FETCH_HEAD
-COMMIT=$(git -C "$SRC" rev-parse --short HEAD)
-echo "libcvc $COMMIT"
-
-B=$WORK/build
-echo "=== configure ==="
-"$CMAKE" -G Ninja -S "$SRC" -B "$B" -DCMAKE_MAKE_PROGRAM=/usr/bin/ninja \
-  -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
-  "-DCMAKE_PREFIX_PATH=$DEPS;$DEPS_EXTRA" \
-  '-DCMAKE_INSTALL_RPATH=$ORIGIN/../lib' -DCMAKE_BUILD_WITH_INSTALL_RPATH=ON \
-  -DCVC_APP_XML_PROPERTY_TREE=OFF -DCVC_ARIADNE_TVISION=ON -DCVC_BUILD_ARI=ON \
-  -DCVC_BUILD_ARIGL=OFF -DCVC_BUILD_ARISRV=ON -DCVC_BUILD_CLI=OFF -DCVC_BUILD_CVCGL=OFF \
-  -DCVC_BUILD_LSYS_TOOLS=OFF -DCVC_BUILD_PHYSICS_REPLAY=OFF -DCVC_BUILD_PYCVC=OFF \
-  -DCVC_BUILD_TESTS=OFF -DCVC_ENABLE_ASSIMP=ON -DCVC_ENABLE_COVERAGE=OFF -DCVC_ENABLE_CUDA=OFF \
-  -DCVC_ENABLE_FFTW=OFF -DCVC_ENABLE_GRPC=ON -DCVC_ENABLE_IMAGEMAGICK=OFF -DCVC_ENABLE_LIBIGL=ON \
-  -DCVC_ENABLE_MESHER=OFF -DCVC_ENABLE_OPENMP=OFF -DCVC_ENABLE_SDF=OFF -DCVC_ENABLE_WS=ON \
-  -DCVC_FFT_PROVIDER=pocketfft -DCVC_GEOMETRY_CORRECT_INDEX_START=OFF \
-  -DCVC_GEOMETRY_ENABLE_BUNNY=ON -DCVC_STATE_MEMORY_MANAGER=ON -DCVC_USING_IMOD_MRC=OFF \
-  -DCVC_USING_XMLRPC=OFF -DCVC_WITH_JOLT=ON -DDISABLE_CGAL=ON > "$WORK/configure.log" 2>&1 ||
-  { tail -40 "$WORK/configure.log"; exit 1; }
-for want in "gRPC transport" "WebSocket transport ENABLED" "Jolt backend ENABLED"; do
-  grep -qi "$want" "$WORK/configure.log" || { echo "FATAL: the configure did not report '$want'"; exit 1; }
-done
-
-echo "=== build arisrv ==="
-"$CMAKE" --build "$B" --target arisrv -j "${JOBS:-10}" > "$WORK/build.log" 2>&1 ||
-  { grep -E "error|FAILED" "$WORK/build.log" | head -30; exit 1; }
-tail -1 "$WORK/build.log"
+P=$WORK/$NAME.prefix
+echo "=== cvcpkg install arisrv==$VER libcvc==${VER%%+*} ==="
+rm -rf "$P"
+"$CVCPKG" install "arisrv==$VER" "libcvc==${VER%%+*}" --prefix "$P" \
+  --platform linux --config release --link shared --no-fallback-to-source \
+  > "$WORK/$NAME.install.log" 2>&1 || { tail -20 "$WORK/$NAME.install.log"; exit 1; }
+installed() { "$CVCPKG" list --installed --prefix "$P" | awk -v n="$1" '$1 == n {print $2}'; }
+ARISRV=$(installed arisrv) LIBCVC=$(installed libcvc)
+[[ -n "$ARISRV" && -n "$LIBCVC" ]] || { echo "FATAL: no arisrv or no libcvc in $P"; exit 1; }
+[[ "${ARISRV%%+*}" == "${LIBCVC%%+*}" ]] ||
+  { echo "FATAL: arisrv $ARISRV and libcvc $LIBCVC are from different releases"; exit 1; }
+echo "arisrv $ARISRV, libcvc $LIBCVC"
 
 echo "=== bundle $NAME ==="
-# Straight from the build tree, which already has the install RUNPATH ($ORIGIN/../lib, from
-# CMAKE_BUILD_WITH_INSTALL_RPATH): `cmake --install` would stop at the first target this build
-# skipped (ari) before it reached arisrv.
 O=$WORK/$NAME
 rm -rf "$O"
 mkdir -p "$O/bin" "$O/lib"
-cp -a "$B/bin/arisrv" "$O/bin/"
-cp -a "$B/lib"/libcvc.so* "$O/lib/"
+cp -L "$P/bin/arisrv" "$O/bin/"
 readelf -d "$O/bin/arisrv" | grep -q 'RUNPATH.*\$ORIGIN/\.\./lib' ||
   { echo "FATAL: arisrv's RUNPATH is not \$ORIGIN/../lib"; exit 1; }
-LD_LIBRARY_PATH="$O/lib:$DEPS/lib:$DEPS_EXTRA/lib" ldd "$O/bin/arisrv" |
-  awk '/=> \// {print $3}' | grep -F -e "$DEPS" -e "$DEPS_EXTRA" | sort -u |
+LD_LIBRARY_PATH= ldd "$P/bin/arisrv" | awk '/=> \// {print $3}' | grep -F "$P/" | sort -u |
   while read -r so; do cp -L "$so" "$O/lib/"; done
 if LD_LIBRARY_PATH= ldd "$O/bin/arisrv" | grep "not found"; then echo "FATAL: unresolved libraries"; exit 1; fi
-echo "libcvc $COMMIT ($REF), arisrv built on catx-03, glibc $(ldd --version | head -1 | awk '{print $NF}'), $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$O/BUILT-FROM"
+echo "arisrv $ARISRV, libcvc $LIBCVC (cvcpkg linux $(uname -m) release shared), bundled on catx-03, glibc $(ldd --version | head -1 | awk '{print $NF}'), $(date -u +%Y-%m-%dT%H:%M:%SZ)" > "$O/BUILT-FROM"
 cat "$O/BUILT-FROM"
-echo "libs: $(ls "$O/lib" | wc -l)"
+echo "libs: $(ls "$O/lib" | wc -l), $(du -sh "$O" | cut -f1)"
+rm -rf "$P"
 echo "RELAY_BUILD_OK $O"
