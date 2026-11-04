@@ -83,6 +83,9 @@ $env:CVC_ARIADNE_RELAY = "grpc://paladin.sublevels.net:7700"; $env:CVC_ARIADNE_N
 .\deps\bin\arigl.exe run share\cyprty\main.ari
 ```
 
+Natively it needs `arigl` 3.7.10 or later. 3.7.9's packages lack the component library, so it has
+no Users or Chat windows, and its Windows build aborts on a `grpc://` hostname.
+
 A native client has no page config. The environment does what the page's link does:
 
 | variable | does | in the browser |
