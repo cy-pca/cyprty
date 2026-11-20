@@ -65,6 +65,26 @@ jobs:
           for f in deploy/cyberpcangel/*.sh deploy/relay/*.sh; do bash -n "$f" && echo "ok   $f"; done
           python3 -m py_compile deploy/cyberpcangel/verify.py && echo "ok   deploy/cyberpcangel/verify.py"
 
+      # stage.sh on fake arigl-web packages: the AudioWorklet file ships when the package has it,
+      # and a package without it (older than transfix/libcvc#1412) still stages.
+      - name: stage.sh on fake packages
+        run: |
+          set -euo pipefail
+          T=$(mktemp -d)
+          for k in old new; do
+            mkdir -p "$T/$k"
+            for f in index.html arigl-web.css arigl.wasm LICENSE THIRD_PARTY_NOTICES.md; do echo x > "$T/$k/$f"; done
+            echo url_env > "$T/$k/arigl-web.js"
+            echo emscripten_websocket > "$T/$k/arigl.js"
+          done
+          echo registerProcessor > "$T/new/cvc-audio-worklet.js"
+          bash deploy/cyberpcangel/stage.sh "$T/old" share/cyprty "$T/old-out"
+          bash deploy/cyberpcangel/stage.sh "$T/new" share/cyprty "$T/new-out"
+          test ! -e "$T/old-out/cyprty/cvc-audio-worklet.js"
+          cmp "$T/new/cvc-audio-worklet.js" "$T/new-out/cyprty/cvc-audio-worklet.js"
+          cmp deploy/cyberpcangel/ariadne.config.json "$T/new-out/cyprty/ariadne.config.json"
+          echo "ok   stage.sh"
+
       # cyprty-deploy.sh against a fake instance: a docroot with wp-config.php, an Apache tree, and
       # no apache2ctl, a2enmod, a2enconf or systemctl that do anything.
       - name: cyprty-deploy.sh on a fake instance

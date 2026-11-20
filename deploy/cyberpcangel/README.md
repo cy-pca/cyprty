@@ -21,7 +21,8 @@ catx-00 forced command (~tfx/bin/txwtf-deploy-cyberpcangel)
 cyberpcangel instance
   cyprty-deploy.sh  checks the payload, replaces $DOCROOT/cyprty (the previous site stays as
                     $DOCROOT/cyprty.prev), owns /etc/apache2/conf-available/cyprty.conf
-verify.py          every staged file served byte for byte, the headers, the redirect
+verify.py          every staged file served byte for byte, scripts as JavaScript, the headers,
+                   the redirect
 ```
 
 - **The stock page.** The page is the `arigl-web` package as cvcpkg.org publishes it, not a
@@ -29,6 +30,12 @@ verify.py          every staged file served byte for byte, the headers, the redi
 - **Only a package that can run a conference.** `stage.sh` refuses an `arigl-web` whose page has
   no `url_env` config or whose `arigl.wasm` has no WebSocket transport: it would load and never
   join the room.
+- **The AudioWorklets, when the package has them.** An `arigl-web` from transfix/libcvc#1412 on
+  runs the mic and speaker on AudioWorklets, off the main thread, and ships their processors as
+  `cvc-audio-worklet.js`; `stage.sh` copies the file when the package has it. A page that loads
+  the file and finds none uses the copy compiled into `arigl.wasm`, from a `blob:` URL (this site
+  has no Content-Security-Policy), after a 404. `?audio=sdl` puts them back on SDL's
+  ScriptProcessorNode, for an A/B.
 - **Only when something moved.** `.built-from`'s first word fingerprints the arigl-web bundle, the
   documents and the files that shape the payload (`ariadne.config.json`, `stage.sh`, the
   workflow). A run that matches the live one stops; `force` publishes anyway.
