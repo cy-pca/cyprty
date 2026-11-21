@@ -12,7 +12,8 @@
     "look": {"env": "CVC_ARIGL_LOOK", "match": "^(mouse|drag)$"},
     "lane": {"env": "CVC_ARIADNE_LANE", "match": "^[^0]", "value": "1"},
     "synthetic": {"env": "CVC_ARIADNE_SYNTHETIC_CAM", "match": "^[^0]", "value": "1"},
-    "yield": {"env": "CVC_ARIGL_YIELD", "match": "^timeout$"}
+    "yield": {"env": "CVC_ARIGL_YIELD", "match": "^timeout$"},
+    "audio": {"env": "CVC_WEB_AUDIO", "match": "^(sdl|worklet)$"}
   },
   "fragment_env": {
     "token": "CVC_ARIADNE_ROOM_TOKEN"

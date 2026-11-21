@@ -3,10 +3,11 @@
 
     deploy/cyberpcangel/verify.py PAYLOAD [BASE_URL]
 
-PAYLOAD is stage.sh's OUT. Every staged file must be served byte for byte, uncompressed; the
-site's directory URL must serve index.html with the cross-origin isolation headers, and the URL
-without the trailing slash must redirect to it. Python's urllib only (the CI runner's curl is
-broken).
+PAYLOAD is stage.sh's OUT. Every staged file must be served byte for byte, uncompressed, and a
+script as JavaScript (the site sends nosniff, and an AudioWorklet module, cvc-audio-worklet.js,
+loads only as JavaScript); the site's directory URL must serve index.html with the cross-origin
+isolation headers, and the URL without the trailing slash must redirect to it. Python's urllib
+only (the CI runner's curl is broken).
 """
 import pathlib
 import sys
@@ -14,6 +15,7 @@ import urllib.error
 import urllib.request
 
 SITE = "cyprty"
+JS_TYPES = ("text/javascript", "application/javascript")
 
 
 class NoRedirect(urllib.request.HTTPRedirectHandler):
@@ -53,8 +55,11 @@ def main():
           f"/{SITE} redirects to /{SITE}/")
     for f in sorted(p for p in root.rglob("*") if p.is_file()):
         rel = f.relative_to(root).as_posix()
-        status, _, body = get(f"{base}/{SITE}/{rel}")
+        status, headers, body = get(f"{base}/{SITE}/{rel}")
         check(status == 200 and body == f.read_bytes(), rel)
+        if status == 200 and f.suffix == ".js":
+            ctype = headers.get("Content-Type", "").split(";")[0].strip().lower()
+            check(ctype in JS_TYPES, f"{rel} is served as JavaScript ({ctype or 'no type'})")
     sys.exit(0 if ok else 1)
 
 

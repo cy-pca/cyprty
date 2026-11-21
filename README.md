@@ -37,6 +37,8 @@ the directory:
 ```bash
 cvcpkg install arigl-web --platform wasm --arch wasm32 --link static --prefix ./deps
 mkdir -p site && cp ./deps/share/arigl-web/{index.html,arigl-web.js,arigl-web.css,arigl.js,arigl.wasm} site/
+# A newer arigl-web also has the mic and speaker's AudioWorklets.
+[ -f ./deps/share/arigl-web/cvc-audio-worklet.js ] && cp ./deps/share/arigl-web/cvc-audio-worklet.js site/
 cp share/cyprty/*.ari web/ariadne.config.json site/
 python3 -m http.server 8080 --directory site
 ```
@@ -55,6 +57,7 @@ The page config ([web/ariadne.config.json](web/ariadne.config.json)) sets what a
 | `?synthetic=1` | a test pattern instead of your camera |
 | `?lane=1` | offer the relay a WebRTC fast lane for poses and media |
 | `?yield=timeout` | arigl's frame loop on a 0 ms timer instead of requestAnimationFrame (an A/B for pacing) |
+| `?audio=sdl` | the mic and speaker on SDL's ScriptProcessorNode instead of AudioWorklets (an A/B; `?audio=worklet` is the default) |
 | `#token=...` | a private room's token, in the fragment, which the browser never sends to a server |
 
 The page keeps a random device id and key for the browser in localStorage; the relay shows the
