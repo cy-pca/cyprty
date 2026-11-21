@@ -14,9 +14,11 @@ name: deploy-cyberpcangel
 # names a path. No pull_request trigger: a pull request must not reach the runner that holds the
 # key.
 #
-# By hand only, for now (Actions -> deploy-cyberpcangel -> Run workflow): until cvcpkg.org has an
-# arigl-web that runs a conference, a run stops at the stage step. Once it does, add the
-# workflow_run trigger (after `ci` succeeds on a push to main), as cy-pca/nicotina has.
+# By hand only, for now (Actions -> deploy-cyberpcangel -> Run workflow). It installs the newest
+# arigl-web, and a page needs a relay from a compatible libcvc tree, but the relay deploys
+# separately (deploy/relay). So add the workflow_run trigger (after `ci` succeeds on a push to
+# main), as cy-pca/nicotina has, only once the relay moves with the page. dry_run installs,
+# fingerprints and stages, and publishes nothing.
 
 on:
   workflow_dispatch:
@@ -27,6 +29,10 @@ on:
         default: 'main'
       force:
         description: 'Publish even if nothing moved since the live build'
+        type: boolean
+        default: false
+      dry_run:
+        description: 'Install, fingerprint and stage only: publish nothing'
         type: boolean
         default: false
 
@@ -103,11 +109,11 @@ jobs:
             payload "${{ steps.check.outputs.built_from }}"
 
       - name: Publish to cyberpcangel.com
-        if: steps.check.outputs.run == 'true'
+        if: steps.check.outputs.run == 'true' && !inputs.dry_run
         run: |
           tar czf - -C payload cyprty \
             | ssh -i "$DEPLOY_KEY" -o BatchMode=yes -o ConnectTimeout=20 tfx@catx-00.tx.wtf deploy-cyprty
 
       - name: Verify live
-        if: steps.check.outputs.run == 'true'
+        if: steps.check.outputs.run == 'true' && !inputs.dry_run
         run: python3 -I cyprty/deploy/cyberpcangel/verify.py payload

@@ -8,8 +8,9 @@ tunnels to arisrv on paladin ([../relay/README.md](../relay/README.md)).
 
 The [deploy-cyberpcangel](../../.github/workflows/deploy-cyberpcangel.yml) workflow publishes the
 documents with the newest `arigl-web` from cvcpkg.org. It runs by hand for now (Actions ->
-deploy-cyberpcangel -> Run workflow, with `ref` for the documents to publish), the same chain as
-cy-pca/nicotina's:
+deploy-cyberpcangel -> Run workflow, with `ref` for the documents to publish; `dry_run` stages and
+publishes nothing), the same chain as cy-pca/nicotina's. Deploy the relay first when the page
+needs a newer one ([../relay/README.md](../relay/README.md)):
 
 ```
 catx-03 runner (label cvcpkg-prod: the cy-pca org runner catx-03-cy-pca, user github-runner)
@@ -59,7 +60,9 @@ Each needs the owner of catx-00 and the cyberpcangel instance:
    ```
    deploy-cyprty)  exec lxc exec cyberpcangel --project catx -- /root/cyprty-deploy.sh ;;
    ```
-3. Give this repository the cy-pca org runner group that holds catx-03-cy-pca.
+3. Give this repository the cy-pca org runner group that holds catx-03-cy-pca (Organization
+   settings -> Actions -> Runner groups -> catx-03-cy-pca -> Repository access). Steps 1 and 2
+   were done on 2026-11-04.
 
 ## By hand
 
