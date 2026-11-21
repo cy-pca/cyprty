@@ -28,6 +28,15 @@ libcvc keeps the reusable conference components (camera, avatar, users, chat, ..
 Ariadne conference app. When that app ships as a `cvc://` document, `main.ari` loads it instead
 of carrying a copy, and adds cyprty's own windows and branding.
 
+- [ ] libcvc: the conference app as a component library, `cvc://components/conference.ari` (its
+      windows as units, its tick as functions an app calls all or some of), with the baseline
+      document built from it
+      ([transfix/libcvc#1422](https://github.com/transfix/libcvc/pull/1422)).
+- [ ] `main.ari` imports it and keeps only what is cyprty's (its name and menus), needing the
+      libcvc release that ships it (`min_libcvc`). The room's look then comes from the relay's
+      world (no `scene:` block here), so the relay deploys from the same release.
+- [ ] cyprty's own windows and branding beside the library's.
+
 ## 3. A branded app
 
 cyprty's own look and name, beyond the baseline.
