@@ -9,6 +9,9 @@
 # state), 7701 (gRPC media) and 7702 (WebSocket, which cyberpcangel.com/cyprty-ws tunnels to).
 set -euo pipefail
 HOST=${HOST:-tfx@catx-00.tx.wtf}
+# Where build-relay.sh left the bundle. The FQDN: a bare catx-03 resolves only where an ssh alias
+# says so.
+BUILD_HOST=${BUILD_HOST:-tfx@catx-03.tx.wtf}
 WORK=${WORK:-/mnt/ramdisk/tfx/cyprty-relay}
 ROOM=${ROOM:-standup}
 in_paladin() { ssh -o BatchMode=yes "$HOST" "lxc exec paladin --project catx -- bash -s"; }
@@ -27,7 +30,7 @@ EOS
   NAME=$1
   [[ "$NAME" =~ ^[A-Za-z0-9._-]+$ ]] || { echo "bad bundle name: $NAME" >&2; exit 2; }
   echo "=== copy the bundle catx-03 -> paladin ==="
-  ssh -o BatchMode=yes catx-03 "test -x $WORK/$NAME/bin/arisrv && tar czf - -C $WORK $NAME" |
+  ssh -o BatchMode=yes "$BUILD_HOST" "test -x $WORK/$NAME/bin/arisrv && tar czf - -C $WORK $NAME" |
     ssh -o BatchMode=yes "$HOST" "lxc exec paladin --project catx -- bash -c 'mkdir -p /home/tfx/ariadne && rm -rf /home/tfx/ariadne/$NAME && tar xzf - -C /home/tfx/ariadne && chown -R tfx:tfx /home/tfx/ariadne/$NAME'"
   echo "=== swap the running relay (same ports) ==="
   { echo "B=/home/tfx/ariadne/$NAME ROOM=$ROOM"; cat <<'EOS'

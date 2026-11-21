@@ -17,7 +17,7 @@ into a self-contained bundle: `bin/arisrv`, the libraries it loads in `lib/`, an
 (the arisrv and libcvc package versions). `deploy-relay.sh` places the bundle on paladin:
 
 ```bash
-ssh catx-03 'bash -s' -- 3.7.10 relay-3.7.10 < deploy/relay/build-relay.sh
+ssh tfx@catx-03.tx.wtf 'bash -s' -- 3.7.10 relay-3.7.10 < deploy/relay/build-relay.sh
 bash deploy/relay/deploy-relay.sh relay-3.7.10
 bash deploy/relay/deploy-relay.sh status
 ```
