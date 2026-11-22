@@ -44,9 +44,11 @@ fi
 
 dir="$out/cyprty"
 install -d "$dir"
-cp -R "$docs/." "$dir/"
-install -m 644 "$here/ariadne.config.json" "$web/LICENSE" "$web/THIRD_PARTY_NOTICES.md" "$dir/"
-for f in "${page[@]}"; do cp "$web/$f" "$dir/"; done
+# Timestamps are kept (-p): the server's ETags come from them, so an unchanged file keeps its ETag
+# from one deploy to the next, and browsers revalidate it instead of downloading it again.
+cp -R -p "$docs/." "$dir/"
+install -p -m 644 "$here/ariadne.config.json" "$web/LICENSE" "$web/THIRD_PARTY_NOTICES.md" "$dir/"
+for f in "${page[@]}"; do cp -p "$web/$f" "$dir/"; done
 if [[ -n "$built_from" ]]; then printf '%s\n' "$built_from" > "$dir/.built-from"; fi
 
 chmod -R u=rwX,go=rX "$out"

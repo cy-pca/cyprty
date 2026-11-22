@@ -86,6 +86,11 @@ cat > "$NEW" <<CONF
     Header always set Referrer-Policy "no-referrer"
     # A redeploy shows on the next load: every file revalidates (304 when unchanged).
     Header set Cache-Control "no-cache"
+    # mod_deflate gives a compressed response the ETag "<etag>-gzip", and the browser sends that back
+    # in If-None-Match. Apache before 2.4.58 (DeflateAlterETag) never matches it against the file's
+    # own ETag, so every revalidation of arigl.wasm was a full download (22 MB compressed). Dropping
+    # the suffix before the comparison gets the 304.
+    RequestHeader edit If-None-Match "-gzip\"" "\""
 </Directory>
 
 # The relay: the page dials wss://<this host>/cyprty-ws, tunnelled to arisrv's WebSocket acceptor.
@@ -116,7 +121,9 @@ echo "### place the site"
 dst="$DOCROOT/$SITE" prev="$DOCROOT/$SITE.prev"
 tmp="$DOCROOT/.$SITE.new.$$"
 rm -rf "$tmp"
-cp -R "$WORK/$SITE" "$tmp"
+# Keep the payload's timestamps: an unchanged file keeps its ETag across deploys, so browsers
+# revalidate it (304) instead of downloading it again.
+cp -R --preserve=timestamps "$WORK/$SITE" "$tmp"
 chown -R root:root "$tmp"
 chmod -R u=rwX,go=rX "$tmp"
 kept=""
