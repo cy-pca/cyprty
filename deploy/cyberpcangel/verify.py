@@ -60,6 +60,21 @@ def main():
         if status == 200 and f.suffix == ".js":
             ctype = headers.get("Content-Type", "").split(";")[0].strip().lower()
             check(ctype in JS_TYPES, f"{rel} is served as JavaScript ({ctype or 'no type'})")
+    # What a browser does on its next visit: arigl.wasm compressed, then revalidated with the ETag
+    # it got. A 200 here means every visit downloads the client again.
+    wasm = f"{base}/{SITE}/arigl.wasm"
+    req = urllib.request.Request(wasm, method="HEAD", headers={"Accept-Encoding": "gzip"})
+    with urllib.request.urlopen(req, timeout=60) as r:
+        etag = r.headers.get("ETag", "")
+    req = urllib.request.Request(wasm, method="HEAD",
+                                 headers={"Accept-Encoding": "gzip", "If-None-Match": etag})
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            status = r.status
+    except urllib.error.HTTPError as e:
+        status = e.code
+    check(bool(etag) and status == 304,
+          f"arigl.wasm revalidates: 304 for its compressed ETag {etag or '(none)'} (got {status})")
     sys.exit(0 if ok else 1)
 
 
