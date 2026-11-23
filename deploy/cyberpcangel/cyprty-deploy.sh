@@ -121,9 +121,15 @@ echo "### place the site"
 dst="$DOCROOT/$SITE" prev="$DOCROOT/$SITE.prev"
 tmp="$DOCROOT/.$SITE.new.$$"
 rm -rf "$tmp"
-# Keep the payload's timestamps: an unchanged file keeps its ETag across deploys, so browsers
-# revalidate it (304) instead of downloading it again.
-cp -R --preserve=timestamps "$WORK/$SITE" "$tmp"
+cp -R "$WORK/$SITE" "$tmp"
+# Apache's ETag is the file's size and mtime. A file byte for byte the same as the live one keeps
+# the live one's mtime, so its ETag holds and browsers revalidate it (304) instead of downloading
+# it again; any other file gets a fresh mtime, so its ETag changes even at the same size.
+if [[ -d "$dst" ]]; then
+  (cd "$tmp" && find . -type f -print0) | while IFS= read -r -d '' f; do
+    if [[ -f "$dst/$f" ]] && cmp -s "$tmp/$f" "$dst/$f"; then touch -r "$dst/$f" "$tmp/$f"; fi
+  done
+fi
 chown -R root:root "$tmp"
 chmod -R u=rwX,go=rX "$tmp"
 kept=""
