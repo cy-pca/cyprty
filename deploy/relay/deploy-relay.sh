@@ -38,14 +38,21 @@ set -e
 cat $B/BUILT-FROM
 ldd $B/bin/arisrv | grep "not found" && { echo "FATAL: unresolved libraries"; exit 1; } || true
 for p in $(pgrep -x arisrv); do echo "stopping $p: $(tr '\0' ' ' < /proc/$p/cmdline)"; kill $p; done
-sleep 2
+# Wait for it to go: it takes its ports with it, and a relay that starts while they are still held
+# aborts ("bind failed ... Address already in use"; relay-4.0.4 took over 2 s on 2026-11-24).
+for i in $(seq 30); do pgrep -x arisrv >/dev/null || break; sleep 1; done
+if pgrep -x arisrv >/dev/null; then
+  for p in $(pgrep -x arisrv); do echo "still running after 30 s, killing $p"; kill -9 $p; done
+  sleep 1
+fi
 cd $B
 sudo -u tfx setsid nohup env CVC_ARISRV_ROOM_DEBUG=1 ./bin/arisrv --room $ROOM \
   --state-listen 0.0.0.0:7700 --media-listen 0.0.0.0:7701 --ws-listen 0.0.0.0:7702 \
   > /home/tfx/ariadne/relay-${B##*/}.log 2>&1 < /dev/null &
 sleep 3
-pgrep -x arisrv -a
 head -5 /home/tfx/ariadne/relay-${B##*/}.log
+pgrep -x arisrv -a || { echo "FATAL: the new relay is not running; its log ends:"
+                        tail -5 /home/tfx/ariadne/relay-${B##*/}.log; exit 1; }
 EOS
   } | in_paladin
   ;;
