@@ -24,9 +24,9 @@ branding on top of that baseline ([docs/ROADMAP.md](docs/ROADMAP.md)).
 ```
 share/cyprty/main.ari          the app
 web/ariadne.config.json        the page config, for serving the app yourself
-deploy/cyberpcangel/           how https://cyberpcangel.com/cyprty/ is published (README there)
+deploy/cyberpcangel/           what https://cyberpcangel.com/cyprty/ is made of (cy-pca/ops deploys it)
 deploy/relay/                  how the room's relay is built and run (README there)
-.github/workflows/             ci (the documents, configs and scripts), deploy-cyberpcangel, llm-gate
+.github/workflows/             ci (the documents, configs and scripts), llm-gate
 ```
 
 ## Running it in a browser

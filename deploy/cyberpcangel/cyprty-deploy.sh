@@ -12,11 +12,16 @@
 # $DOCROOT/cyprty.prev for a rollback by hand. The files are owned by root, so the web server
 # (WordPress runs as www-data) can't change them.
 #
-# Version of record: cy-pca/cyprty deploy/cyberpcangel/cyprty-deploy.sh. Install or update it:
+# Version of record: cy-pca/ops cyberpcangel/cyprty-deploy.sh, beside the workflow that deploys the
+# site (cyberpcangel-deploy.yml). cy-pca/cyprty keeps a byte-identical copy in deploy/cyberpcangel/.
+# Install or update it, from the directory that holds it:
 #   ssh tfx@catx-00.tx.wtf 'lxc exec cyberpcangel --project catx -- bash -c "cat > /root/cyprty-deploy.sh.new && bash -n /root/cyprty-deploy.sh.new && chmod 700 /root/cyprty-deploy.sh.new && mv /root/cyprty-deploy.sh.new /root/cyprty-deploy.sh && echo OK"' \
-#     < deploy/cyberpcangel/cyprty-deploy.sh
+#     < cyprty-deploy.sh
 set -euo pipefail
 umask 022
+
+# cyberpcangel-deploy.yml looks for this line, to see that the installed script is the record.
+echo "cyprty-deploy.sh sha256: $(sha256sum "$0" | cut -d' ' -f1)"
 
 SITE=cyprty
 # The relay's WebSocket acceptor (arisrv --ws-listen on paladin; deploy/relay). The page dials
